@@ -1,0 +1,2 @@
+org.springframework.cloud.bootstrap.BootstrapConfiguration=\
+  ru.dev.exampleapp.impl.environment.repository.EtcdRepositoryConfiguration
