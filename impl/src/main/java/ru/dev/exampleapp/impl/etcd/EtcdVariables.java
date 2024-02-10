@@ -6,4 +6,6 @@ public class EtcdVariables {
 
     public static final String ETCD_PROPERTY_PREFIX = "example";
 
+    public static final String ETCD_PROPERTY_SOURCE_NAME = "EtcdProperties";
+
 }

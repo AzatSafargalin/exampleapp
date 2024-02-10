@@ -13,4 +13,9 @@ public class EtcdClientConfiguration {
     Client client() {
         return Client.builder().endpoints(System.getenv(ETCD_HOST)).build();
     }
+
+    @Bean
+    EtcdManager etcdListener(Client client) {
+        return new EtcdManager(client);
+    }
 }

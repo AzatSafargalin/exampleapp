@@ -1,50 +1,37 @@
 package ru.dev.exampleapp.impl.environment.repository;
 
-import io.etcd.jetcd.ByteSequence;
-import io.etcd.jetcd.Client;
-import io.etcd.jetcd.options.GetOption;
 import org.springframework.cloud.config.environment.Environment;
 import org.springframework.cloud.config.environment.PropertySource;
 import org.springframework.cloud.config.server.environment.EnvironmentRepository;
 import org.springframework.util.StringUtils;
+import ru.dev.exampleapp.impl.etcd.EtcdListenParams;
+import ru.dev.exampleapp.impl.etcd.EtcdManager;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import static ru.dev.exampleapp.impl.etcd.EtcdVariables.ETCD_PROPERTY_PREFIX;
+import static ru.dev.exampleapp.impl.etcd.EtcdVariables.ETCD_PROPERTY_SOURCE_NAME;
 
 public class EtcdEnvironmentRepository implements EnvironmentRepository {
 
-    private final Client client;
+    private final EtcdManager etcdManager;
 
-    public EtcdEnvironmentRepository(Client client) {
-        this.client = client;
+    public EtcdEnvironmentRepository(EtcdManager etcdManager) {
+        this.etcdManager = etcdManager;
     }
 
     @Override
     public Environment findOne(String application, String profile, String label) {
         String[] profiles = StringUtils.commaDelimitedListToStringArray(profile);
         Environment environment = new Environment(application, profiles, null, null, null);
-        Map<String, Object> map = getProps();
-        PropertySource ps = new PropertySource("etcdProps", map);
+        Map<String, Object> map = etcdManager.getPropertiesFromEtcdByPrefix(ETCD_PROPERTY_PREFIX)
+                .entrySet()
+                .stream()
+                .filter(v -> EtcdListenParams.ETCD_LISTEN_PARAMS.contains(v.getKey()))
+                .collect(Collectors.toMap(k -> k.getKey(), v -> v.getValue()));
+        PropertySource ps = new PropertySource(ETCD_PROPERTY_SOURCE_NAME, map);
         environment.add(ps);
         return environment;
-    }
-
-    private Map<String, Object> getProps() {
-        try {
-            return client
-                    .getKVClient()
-                    .get(ByteSequence.from(ETCD_PROPERTY_PREFIX, StandardCharsets.UTF_8), GetOption.builder().isPrefix(true).build())
-                    .get()
-                    .getKvs()
-                    .stream()
-                    .collect(Collectors.toMap(k -> k.getKey().toString(), v -> v.getValue().toString()));
-        } catch (Exception e) {
-            // todo
-        }
-        return Collections.emptyMap();
     }
 }
